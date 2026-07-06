@@ -1,0 +1,53 @@
+name: App Hub release
+
+# Publishes the app to the DHIS2 App Hub when a GitHub Release is published.
+#
+# Prerequisites (see RELEASE.md):
+#   1. The app has been uploaded to the App Hub at least once, manually.
+#   2. The App Hub application id is set in d2.config.js (`id` field).
+#   3. A repository secret named D2_APP_HUB_API_KEY holds an App Hub API key
+#      with permission to publish new versions of this app.
+
+on:
+  release:
+    types: [published]
+  # Allow a manual run from the Actions tab for dry runs / re-publishing.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Publish to DHIS2 App Hub
+        env:
+          D2_APP_HUB_API_KEY: ${{ secrets.D2_APP_HUB_API_KEY }}
+        run: |
+          if [ -z "$D2_APP_HUB_API_KEY" ]; then
+            echo "::error::D2_APP_HUB_API_KEY secret is not set. See RELEASE.md."
+            exit 1
+          fi
+          npx d2-app-scripts publish --apiKey "$D2_APP_HUB_API_KEY"

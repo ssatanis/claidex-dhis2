@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+build/
+dist/
+.d2/
+
+# Test / coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env / secrets — never commit real backend URLs or keys
+.env
+.env.local
+.env.*.local
+
+# Editor / OS / tooling
+.DS_Store
+.idea/
+.vscode/
+.claude/
+*.swp
+
+# i18n build artifacts (generated)
+i18n/
