@@ -7,7 +7,6 @@ import {
     APP_VENDOR,
     EXTERNAL_LINKS,
 } from '../../config/constants'
-import { isClaidexBackendConfigured } from '../../config/env'
 
 const ExternalLink: React.FC<{ href: string; children: React.ReactNode }> = ({
     href,
@@ -91,18 +90,10 @@ export const AboutPage: React.FC = () => (
                 to return results - the same as using their websites.
             </p>
             <p className="p">
-                An optional {APP_VENDOR} Compass backend can add risk and
-                failure-intelligence context and richer explainer generation. It
-                is{' '}
-                <strong>
-                    {isClaidexBackendConfigured()
-                        ? 'configured'
-                        : 'not configured'}
-                </strong>{' '}
-                for this deployment. When it is not configured, no data is sent
-                to {APP_VENDOR} and risk context is shown as unavailable rather
-                than estimated. See the privacy and data-flow documentation for
-                details.
+                The AI Patient Navigator is powered by the {APP_VENDOR} Compass
+                service, which adds risk and failure-intelligence context and
+                richer explainer generation. The patient description you enter is
+                sent to that service to find trials and build the report.
             </p>
         </SectionCard>
 

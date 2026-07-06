@@ -2,11 +2,14 @@ import React from 'react'
 import { ExternalLink } from './icons'
 import type { CompassPdfData, CompassPdfTrial } from './compassTypes'
 
-/** Map a 0-100 Mechanism Risk Score to a qualitative band. */
+/**
+ * Map a 0-100 Mechanism Risk Score to a qualitative band. MRS is a historical
+ * support score: low means high failure risk, high means strong support.
+ */
 function mrsBand(score: number): { label: string; tone: string } {
-    if (score >= 67) return { label: 'Elevated risk', tone: 'cx-mrs-high' }
-    if (score >= 34) return { label: 'Moderate risk', tone: 'cx-mrs-mid' }
-    return { label: 'Lower risk', tone: 'cx-mrs-low' }
+    if (score <= 45) return { label: 'High historical risk', tone: 'cx-mrs-high' }
+    if (score <= 65) return { label: 'Moderate risk', tone: 'cx-mrs-mid' }
+    return { label: 'Strong historical support', tone: 'cx-mrs-low' }
 }
 
 const nctUrl = (nctId: string): string =>
