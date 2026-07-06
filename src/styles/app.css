@@ -915,6 +915,174 @@
     color: var(--cx-text-2);
 }
 
+/* Mode toggle (AI Navigator / Registry search) */
+.cx-modetoggle {
+    display: inline-flex;
+    gap: 2px;
+    background: var(--cx-muted);
+    border-radius: 8px;
+    padding: 2px;
+    margin-bottom: 6px;
+}
+.cx-modetab {
+    border: none;
+    background: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cx-text-2);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-modetab.active {
+    background: var(--cx-surface);
+    color: var(--cx-text);
+    box-shadow: var(--cx-shadow);
+}
+
+/* AI unavailable fallback */
+.cx-ai-fallback {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--cx-border);
+    border-radius: var(--cx-r-sm);
+    background: var(--cx-muted-40);
+}
+.cx-ai-fallback p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--cx-text-2);
+}
+
+/* Registry search form */
+.cx-regsearch {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.cx-regsearch-intro {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--cx-text-2);
+}
+.cx-regsearch-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.cx-regsearch-chip {
+    background: var(--cx-muted-40);
+    border: 1px solid var(--cx-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    color: var(--cx-text);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-regsearch-chip:hover:not(:disabled) {
+    background: var(--cx-muted);
+}
+.cx-regsearch-chip:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+.cx-regsearch-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.cx-regsearch-label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cx-text-2);
+}
+.cx-regsearch-input {
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--cx-border-2);
+    border-radius: var(--cx-r-sm);
+    font-size: 13.5px;
+    font-family: var(--cx-font);
+    color: var(--cx-text);
+    background: var(--cx-surface);
+    outline: none;
+}
+.cx-regsearch-input:focus {
+    border-color: var(--cx-ink);
+    box-shadow: 0 0 0 3px rgba(38, 38, 38, 0.06);
+}
+.cx-regsearch-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--cx-text);
+    cursor: pointer;
+}
+.cx-regsearch-dock {
+    margin-top: 2px;
+}
+
+/* Registry result cards: reuse trial-card styles + a clickable title/actions */
+.cx-tc-titlebtn {
+    display: block;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--cx-text);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-tc-titlebtn:hover {
+    text-decoration: underline;
+}
+.cx-tc-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--cx-border);
+}
+.cx-linkbtn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12.5px;
+    color: var(--cx-link);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-linkbtn:hover {
+    text-decoration: underline;
+}
+.cx-regnote {
+    margin: 0 0 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #7a5b00;
+    background: #fdf6e6;
+    border: 1px solid #efe0b6;
+    border-radius: var(--cx-r-sm);
+    padding: 8px 10px;
+}
+.cx-spinner-dark {
+    border-color: rgba(38, 38, 38, 0.2);
+    border-top-color: var(--cx-ink);
+}
+
 /* ============================ Section card ============================ */
 
 .card {

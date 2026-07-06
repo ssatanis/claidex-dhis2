@@ -8,7 +8,6 @@ import {
 } from '../../components/common/StateViews'
 import { Disclaimer } from '../../components/common/Disclaimer'
 import { Provenance, MissingDataNote } from '../../components/common/Provenance'
-import { RiskPanel } from './RiskPanel'
 import { ExplainerPanel } from './ExplainerPanel'
 import { useTrialDetail } from '../../hooks/useTrialDetail'
 import { useNavigation } from '../../context/navigation'
@@ -26,11 +25,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
     </div>
 )
 
-const DetailBody: React.FC<{
-    trial: TrialDetail
-    risk: TrialDetailRisk
-    riskLoading: boolean
-}> = ({ trial, risk, riskLoading }) => {
+const DetailBody: React.FC<{ trial: TrialDetail }> = ({ trial }) => {
     const tone = statusTone(trial.status)
     const summaryParas = toParagraphs(trial.briefSummary)
     const eligibilityParas = toParagraphs(trial.eligibilityCriteria)
@@ -169,10 +164,6 @@ const DetailBody: React.FC<{
                 </div>
 
                 <div className="col-side">
-                    <SectionCard title="Risk & failure intelligence">
-                        <RiskPanel risk={risk} loading={riskLoading} />
-                    </SectionCard>
-
                     <SectionCard title="Source">
                         <p className="prose">
                             This record is maintained by {trial.source}. Always
@@ -195,12 +186,10 @@ const DetailBody: React.FC<{
     )
 }
 
-type TrialDetailRisk = ReturnType<typeof useTrialDetail>['risk']
-
 export const TrialDetailPage: React.FC = () => {
     const { route, back } = useNavigation()
     const registryId = route.params?.trialId ?? ''
-    const { trial, loading, error, notFound, risk, riskLoading, retry } =
+    const { trial, loading, error, notFound, retry } =
         useTrialDetail(registryId)
 
     return (
@@ -232,13 +221,7 @@ export const TrialDetailPage: React.FC = () => {
                 </SectionCard>
             )}
 
-            {!loading && trial && (
-                <DetailBody
-                    trial={trial}
-                    risk={risk}
-                    riskLoading={riskLoading}
-                />
-            )}
+            {!loading && trial && <DetailBody trial={trial} />}
         </div>
     )
 }

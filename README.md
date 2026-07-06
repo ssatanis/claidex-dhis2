@@ -20,15 +20,20 @@ inside DHIS2 and works on modest devices and networks.
 
 ## Features
 
-- **AI Patient Navigator.** A streaming assistant turns a plain-language patient
-  description into a trial search, with eligibility reasoning and logistics.
+- **Registry search.** A built-in search that runs entirely in the browser
+  against ClinicalTrials.gov and ISRCTN. Useful for referral, patient education,
+  and research, and it works with no external service.
+- **AI Patient Navigator.** An optional streaming assistant turns a
+  plain-language description into a trial search with eligibility reasoning,
+  logistics, and historical mechanism-failure context.
 - **Trial report.** Matched trials as structured cards plus a downloadable,
-  print-ready PDF with a pre-filled patient profile and per-trial detail.
-- **Real data.** Live tools cover ClinicalTrials.gov, the NCI trials API,
-  openFDA, HRSA rurality, and geocoding. Nothing is fabricated.
+  print-ready PDF with a pre-filled profile and per-trial detail.
+- **Works with or without the AI.** If the AI service is unavailable, the app
+  stays fully usable through Registry search and the registry directory.
 - **Registry directory.** Deep links to every WHO primary registry worldwide.
-- **Privacy first.** No patient data is stored or logged; the session clears
-  when the tab closes and the report never leaves the browser.
+- **Privacy first.** No patient data is stored or logged. Registry search sends
+  only search terms to public registries; the session clears when the tab
+  closes and reports never leave the browser.
 
 ## Quick start
 

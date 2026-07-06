@@ -92,8 +92,18 @@ export const AboutPage: React.FC = () => (
             <p className="p">
                 The AI Patient Navigator is powered by the {APP_VENDOR} Compass
                 service, which adds risk and failure-intelligence context and
-                richer explainer generation. The patient description you enter is
-                sent to that service to find trials and build the report.
+                richer explainer generation. The description you enter in that
+                mode is sent to the service to find trials and build the report.
+                The service is stateless: it stores no message content and writes
+                no patient data. Do not enter patient identifiers.
+            </p>
+            <p className="p">
+                Registry search is a separate mode that runs entirely in your
+                browser against ClinicalTrials.gov and ISRCTN. It uses no
+                external {APP_VENDOR} service and sends only your search terms to
+                the public registries. If the AI service is ever unavailable, the
+                app stays fully usable through Registry search and the registry
+                directory.
             </p>
         </SectionCard>
 

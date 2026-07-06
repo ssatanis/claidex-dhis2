@@ -3,11 +3,15 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
 
 import { compassChatUrl } from '../../config/env'
+import { searchTrials, HttpError } from '../../api'
+import type { TrialFilters, TrialSearchResult } from '../../types'
 import { extractPdfTrigger } from './parsePdfTrigger'
 import { generateCompassPdf } from './pdfGenerator'
 import type { CompassPdfData } from './compassTypes'
 import { EmptyPdf } from './EmptyPdf'
 import { TrialCards } from './TrialCards'
+import { RegistrySearch } from './RegistrySearch'
+import { RegistryResults } from './RegistryResults'
 import {
     type ChatMessage,
     type ChatStatus,
@@ -41,6 +45,8 @@ function assistantText(message: UIMessage | undefined): string {
         .join('\n')
 }
 
+type NavMode = 'ai' | 'registry'
+
 export const CompassPage: React.FC = () => {
     const transport = useRef(
         new DefaultChatTransport({ api: compassChatUrl() })
@@ -50,6 +56,7 @@ export const CompassPage: React.FC = () => {
         experimental_throttle: 50,
     })
 
+    const [navMode, setNavMode] = useState<NavMode>('ai')
     const [input, setInput] = useState('')
     const [pdfReady, setPdfReady] = useState(false)
     const [leftCollapsed, setLeftCollapsed] = useState(false)
@@ -58,6 +65,12 @@ export const CompassPage: React.FC = () => {
     const [pdfError, setPdfError] = useState<string | null>(null)
     const [regenerating, setRegenerating] = useState(false)
     const [rightView, setRightView] = useState<'trials' | 'pdf'>('trials')
+
+    // Registry-search mode (fully client-side; works without the AI backend).
+    const [regResult, setRegResult] = useState<TrialSearchResult | null>(null)
+    const [regLoading, setRegLoading] = useState(false)
+    const [regError, setRegError] = useState<string | null>(null)
+    const regAbort = useRef<AbortController | null>(null)
 
     const lastSignatureRef = useRef<string | null>(null)
     const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -86,7 +99,6 @@ export const CompassPage: React.FC = () => {
         }
     }, [])
 
-    // Detect the PDF trigger in the latest assistant message after streaming.
     useEffect(() => {
         if (busy) return
         const last = messages[messages.length - 1]
@@ -99,7 +111,6 @@ export const CompassPage: React.FC = () => {
         void buildPdf(trigger)
     }, [messages, busy, buildPdf])
 
-    // HIPAA: revoke the Blob URL on unmount and clear on tab unload.
     useEffect(() => {
         const clear = () => {
             setPdfBlobUrl((prev) => {
@@ -142,11 +153,59 @@ export const CompassPage: React.FC = () => {
         iframeRef.current?.contentWindow?.print()
     }, [])
 
+    const runRegistrySearch = useCallback(async (filters: TrialFilters) => {
+        regAbort.current?.abort()
+        const controller = new AbortController()
+        regAbort.current = controller
+        setRegLoading(true)
+        setRegError(null)
+        try {
+            const result = await searchTrials(filters, controller.signal)
+            if (controller.signal.aborted) return
+            setRegResult(result)
+            setRegLoading(false)
+            setLeftCollapsed(false)
+        } catch (e) {
+            if (controller.signal.aborted) return
+            setRegError(
+                e instanceof HttpError
+                    ? e.userMessage
+                    : 'Search failed. Please try again.'
+            )
+            setRegLoading(false)
+        }
+    }, [])
+
     const empty = messages.length === 0
+
+    const ModeToggle = (
+        <div className="cx-modetoggle" role="tablist" aria-label="Mode">
+            <button
+                type="button"
+                role="tab"
+                aria-selected={navMode === 'ai'}
+                className={navMode === 'ai' ? 'cx-modetab active' : 'cx-modetab'}
+                onClick={() => setNavMode('ai')}
+            >
+                AI Navigator
+            </button>
+            <button
+                type="button"
+                role="tab"
+                aria-selected={navMode === 'registry'}
+                className={
+                    navMode === 'registry' ? 'cx-modetab active' : 'cx-modetab'
+                }
+                onClick={() => setNavMode('registry')}
+            >
+                Registry search
+            </button>
+        </div>
+    )
 
     return (
         <div className="cx-compass">
-            {/* LEFT PANEL - Chat */}
+            {/* LEFT PANEL */}
             <section
                 className={
                     leftCollapsed
@@ -159,7 +218,7 @@ export const CompassPage: React.FC = () => {
                         <button
                             type="button"
                             className="cx-iconbtn"
-                            aria-label="Expand chat panel"
+                            aria-label="Expand panel"
                             onClick={() => setLeftCollapsed(false)}
                         >
                             <PanelLeftOpen size={16} />
@@ -169,113 +228,143 @@ export const CompassPage: React.FC = () => {
                     <>
                         <div className="cx-chat-head">
                             <div>
-                                <h2>Patient Navigator</h2>
-                                <p>
-                                    HIPAA: No patient data is stored or logged.
-                                    This session is cleared when you close this
-                                    tab.
+                                {ModeToggle}
+                                <p className="cx-panel-sub">
+                                    Informational support only. Do not enter
+                                    patient identifiers. This session is not
+                                    stored and clears when you close the tab.
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 className="cx-iconbtn cx-hide-mobile"
-                                aria-label="Collapse chat panel"
+                                aria-label="Collapse panel"
                                 onClick={() => setLeftCollapsed(true)}
                             >
                                 <PanelLeftClose size={16} />
                             </button>
                         </div>
 
-                        <div className="cx-chat-scroll">
-                            {empty ? (
-                                <div className="cx-starter">
-                                    <p>
-                                        Describe your patient and I will find
-                                        appropriate clinical trials, with the
-                                        historical failure context for each
-                                        trial&apos;s mechanism. Try one of these:
-                                    </p>
-                                    <div className="cx-starter-list">
-                                        {STARTER_PROMPTS.map((prompt) => (
+                        {navMode === 'ai' ? (
+                            <>
+                                <div className="cx-chat-scroll">
+                                    {empty ? (
+                                        <div className="cx-starter">
+                                            <p>
+                                                Describe your patient and the AI
+                                                navigator finds appropriate
+                                                clinical trials, with the
+                                                historical failure context for
+                                                each trial&apos;s mechanism. Try
+                                                one of these:
+                                            </p>
+                                            <div className="cx-starter-list">
+                                                {STARTER_PROMPTS.map(
+                                                    (prompt) => (
+                                                        <button
+                                                            key={prompt}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                submit(prompt)
+                                                            }
+                                                            className="cx-starter-chip"
+                                                        >
+                                                            {prompt}
+                                                        </button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <MessageList
+                                            messages={
+                                                messages as unknown as ChatMessage[]
+                                            }
+                                            status={status as ChatStatus}
+                                        />
+                                    )}
+                                    {error && (
+                                        <div className="cx-ai-fallback">
+                                            <p>
+                                                The AI navigator is unavailable
+                                                right now. You can still find
+                                                trials with Registry search,
+                                                which runs in your browser.
+                                            </p>
                                             <button
-                                                key={prompt}
                                                 type="button"
-                                                onClick={() => submit(prompt)}
-                                                className="cx-starter-chip"
+                                                className="cx-outlinebtn"
+                                                onClick={() =>
+                                                    setNavMode('registry')
+                                                }
                                             >
-                                                {prompt}
+                                                Switch to Registry search
                                             </button>
-                                        ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="cx-chat-dock">
+                                    <div className="cx-chat-inputwrap">
+                                        <textarea
+                                            ref={textareaRef}
+                                            value={input}
+                                            onChange={(e) => {
+                                                setInput(e.target.value)
+                                                resizeTextarea()
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (
+                                                    e.key === 'Enter' &&
+                                                    !e.shiftKey
+                                                ) {
+                                                    e.preventDefault()
+                                                    submit(input)
+                                                }
+                                            }}
+                                            rows={1}
+                                            placeholder="Describe the patient..."
+                                            className="cx-chat-input"
+                                        />
+                                        {busy ? (
+                                            <button
+                                                type="button"
+                                                className="cx-chat-send cx-chat-stop"
+                                                onClick={() => stop()}
+                                                aria-label="Stop"
+                                            >
+                                                <Square size={14} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="cx-chat-send"
+                                                onClick={() => submit(input)}
+                                                disabled={!input.trim()}
+                                                aria-label="Send"
+                                            >
+                                                <ArrowUp size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            ) : (
-                                <MessageList
-                                    messages={
-                                        messages as unknown as ChatMessage[]
-                                    }
-                                    status={status as ChatStatus}
+                            </>
+                        ) : (
+                            <div className="cx-chat-scroll">
+                                <RegistrySearch
+                                    onSearch={runRegistrySearch}
+                                    busy={regLoading}
                                 />
-                            )}
-                            {error && (
-                                <p className="cx-chat-error">
-                                    Something went wrong with that response.
-                                    Please try again.
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="cx-chat-dock">
-                            <div className="cx-chat-inputwrap">
-                                <textarea
-                                    ref={textareaRef}
-                                    value={input}
-                                    onChange={(e) => {
-                                        setInput(e.target.value)
-                                        resizeTextarea()
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (
-                                            e.key === 'Enter' &&
-                                            !e.shiftKey
-                                        ) {
-                                            e.preventDefault()
-                                            submit(input)
-                                        }
-                                    }}
-                                    rows={1}
-                                    placeholder="Describe the patient..."
-                                    className="cx-chat-input"
-                                />
-                                {busy ? (
-                                    <button
-                                        type="button"
-                                        className="cx-chat-send cx-chat-stop"
-                                        onClick={() => stop()}
-                                        aria-label="Stop"
-                                    >
-                                        <Square size={14} />
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="cx-chat-send"
-                                        onClick={() => submit(input)}
-                                        disabled={!input.trim()}
-                                        aria-label="Send"
-                                    >
-                                        <ArrowUp size={16} />
-                                    </button>
-                                )}
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
             </section>
 
-            {/* RIGHT PANEL - Trial Report (cards + PDF) */}
+            {/* RIGHT PANEL */}
             <section className="cx-pdfpanel">
                 <div className="cx-pdf-head">
-                    {pdfReady && pdfBlobUrl ? (
+                    {navMode === 'ai' && pdfReady && pdfBlobUrl ? (
                         <div className="cx-viewtoggle" role="tablist">
                             <button
                                 type="button"
@@ -305,9 +394,13 @@ export const CompassPage: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <h2>Trial Report</h2>
+                        <h2>
+                            {navMode === 'registry'
+                                ? 'Trial results'
+                                : 'Trial Report'}
+                        </h2>
                     )}
-                    {pdfReady && pdfBlobUrl && (
+                    {navMode === 'ai' && pdfReady && pdfBlobUrl && (
                         <div className="cx-pdf-actions">
                             <button
                                 type="button"
@@ -343,44 +436,68 @@ export const CompassPage: React.FC = () => {
                     )}
                 </div>
                 <div className="cx-pdf-body">
-                    {pdfError ? (
-                        <div className="cx-pdf-error">
-                            <p>{pdfError}</p>
-                            {pdfData && (
-                                <button
-                                    type="button"
-                                    className="cx-outlinebtn"
-                                    onClick={regenerate}
-                                >
-                                    <RefreshCw size={14} />
-                                    Retry
-                                </button>
-                            )}
-                        </div>
-                    ) : pdfReady && pdfBlobUrl && pdfData ? (
-                        <>
-                            <div
-                                className="cx-cards-scroll"
-                                style={{
-                                    display:
-                                        rightView === 'trials' ? 'block' : 'none',
-                                }}
-                            >
-                                <TrialCards data={pdfData} />
+                    {navMode === 'ai' ? (
+                        pdfError ? (
+                            <div className="cx-pdf-error">
+                                <p>{pdfError}</p>
+                                {pdfData && (
+                                    <button
+                                        type="button"
+                                        className="cx-outlinebtn"
+                                        onClick={regenerate}
+                                    >
+                                        <RefreshCw size={14} />
+                                        Retry
+                                    </button>
+                                )}
                             </div>
-                            <iframe
-                                ref={iframeRef}
-                                src={pdfBlobUrl}
-                                title="Compass trial report"
-                                className="cx-pdf-frame"
-                                style={{
-                                    display:
-                                        rightView === 'pdf' ? 'block' : 'none',
-                                }}
-                            />
-                        </>
+                        ) : pdfReady && pdfBlobUrl && pdfData ? (
+                            <>
+                                <div
+                                    className="cx-cards-scroll"
+                                    style={{
+                                        display:
+                                            rightView === 'trials'
+                                                ? 'block'
+                                                : 'none',
+                                    }}
+                                >
+                                    <TrialCards data={pdfData} />
+                                </div>
+                                <iframe
+                                    ref={iframeRef}
+                                    src={pdfBlobUrl}
+                                    title="Compass trial report"
+                                    className="cx-pdf-frame"
+                                    style={{
+                                        display:
+                                            rightView === 'pdf'
+                                                ? 'block'
+                                                : 'none',
+                                    }}
+                                />
+                            </>
+                        ) : (
+                            <EmptyPdf />
+                        )
+                    ) : regLoading ? (
+                        <div className="cx-emptypdf">
+                            <span className="cx-spinner cx-spinner-dark" />
+                            <p>Searching official registries...</p>
+                        </div>
+                    ) : regError ? (
+                        <div className="cx-pdf-error">
+                            <p>{regError}</p>
+                        </div>
+                    ) : regResult ? (
+                        <RegistryResults result={regResult} />
                     ) : (
-                        <EmptyPdf />
+                        <div className="cx-emptypdf">
+                            <p>
+                                Search official registries to see matching trials
+                                here.
+                            </p>
+                        </div>
                     )}
                 </div>
             </section>
