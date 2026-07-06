@@ -70,7 +70,10 @@ export const CompassPage: React.FC = () => {
     const [regResult, setRegResult] = useState<TrialSearchResult | null>(null)
     const [regLoading, setRegLoading] = useState(false)
     const [regError, setRegError] = useState<string | null>(null)
+    const [regFilters, setRegFilters] = useState<TrialFilters | null>(null)
+    const [regPage, setRegPage] = useState(1)
     const regAbort = useRef<AbortController | null>(null)
+    const REG_PAGE_SIZE = 20
 
     const lastSignatureRef = useRef<string | null>(null)
     const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -153,28 +156,35 @@ export const CompassPage: React.FC = () => {
         iframeRef.current?.contentWindow?.print()
     }, [])
 
-    const runRegistrySearch = useCallback(async (filters: TrialFilters) => {
-        regAbort.current?.abort()
-        const controller = new AbortController()
-        regAbort.current = controller
-        setRegLoading(true)
-        setRegError(null)
-        try {
-            const result = await searchTrials(filters, controller.signal)
-            if (controller.signal.aborted) return
-            setRegResult(result)
-            setRegLoading(false)
-            setLeftCollapsed(false)
-        } catch (e) {
-            if (controller.signal.aborted) return
-            setRegError(
-                e instanceof HttpError
-                    ? e.userMessage
-                    : 'Search failed. Please try again.'
-            )
-            setRegLoading(false)
-        }
-    }, [])
+    const runRegistrySearch = useCallback(
+        async (filters: TrialFilters, page = 1) => {
+            regAbort.current?.abort()
+            const controller = new AbortController()
+            regAbort.current = controller
+            setRegFilters(filters)
+            setRegPage(page)
+            setRegLoading(true)
+            setRegError(null)
+            try {
+                const result = await searchTrials(
+                    { ...filters, page, pageSize: REG_PAGE_SIZE },
+                    controller.signal
+                )
+                if (controller.signal.aborted) return
+                setRegResult(result)
+                setRegLoading(false)
+            } catch (e) {
+                if (controller.signal.aborted) return
+                setRegError(
+                    e instanceof HttpError
+                        ? e.userMessage
+                        : 'Search failed. Please try again.'
+                )
+                setRegLoading(false)
+            }
+        },
+        []
+    )
 
     const empty = messages.length === 0
 
@@ -198,7 +208,7 @@ export const CompassPage: React.FC = () => {
                 }
                 onClick={() => setNavMode('registry')}
             >
-                Registry search
+                Registry Search
             </button>
         </div>
     )
@@ -352,7 +362,7 @@ export const CompassPage: React.FC = () => {
                         ) : (
                             <div className="cx-chat-scroll">
                                 <RegistrySearch
-                                    onSearch={runRegistrySearch}
+                                    onSearch={(f) => runRegistrySearch(f, 1)}
                                     busy={regLoading}
                                 />
                             </div>
@@ -396,7 +406,7 @@ export const CompassPage: React.FC = () => {
                     ) : (
                         <h2>
                             {navMode === 'registry'
-                                ? 'Trial results'
+                                ? 'Trial Results'
                                 : 'Trial Report'}
                         </h2>
                     )}
@@ -490,7 +500,14 @@ export const CompassPage: React.FC = () => {
                             <p>{regError}</p>
                         </div>
                     ) : regResult ? (
-                        <RegistryResults result={regResult} />
+                        <RegistryResults
+                            result={regResult}
+                            page={regPage}
+                            pageSize={REG_PAGE_SIZE}
+                            onPage={(p) =>
+                                regFilters && runRegistrySearch(regFilters, p)
+                            }
+                        />
                     ) : (
                         <div className="cx-emptypdf">
                             <p>

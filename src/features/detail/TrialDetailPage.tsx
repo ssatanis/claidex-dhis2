@@ -8,12 +8,14 @@ import {
 } from '../../components/common/StateViews'
 import { Disclaimer } from '../../components/common/Disclaimer'
 import { Provenance, MissingDataNote } from '../../components/common/Provenance'
+import { RiskPanel } from './RiskPanel'
 import { ExplainerPanel } from './ExplainerPanel'
 import { useTrialDetail } from '../../hooks/useTrialDetail'
 import { useNavigation } from '../../context/navigation'
 import { statusTone, formatDate, formatCount, orDash } from '../../utils/format'
 import { toParagraphs } from '../../utils/sanitize'
-import type { TrialDetail } from '../../types'
+import { parseCriteria } from '../../utils/eligibility'
+import type { RiskContext, TrialDetail } from '../../types'
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
     label,
@@ -25,10 +27,14 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
     </div>
 )
 
-const DetailBody: React.FC<{ trial: TrialDetail }> = ({ trial }) => {
+const DetailBody: React.FC<{
+    trial: TrialDetail
+    risk: RiskContext | null
+    riskLoading: boolean
+}> = ({ trial, risk, riskLoading }) => {
     const tone = statusTone(trial.status)
     const summaryParas = toParagraphs(trial.briefSummary)
-    const eligibilityParas = toParagraphs(trial.eligibilityCriteria)
+    const eligibilityBlocks = parseCriteria(trial.eligibilityCriteria)
 
     return (
         <div className="detail">
@@ -119,13 +125,25 @@ const DetailBody: React.FC<{ trial: TrialDetail }> = ({ trial }) => {
                         </SectionCard>
                     )}
 
-                    {eligibilityParas.length > 0 && (
+                    {eligibilityBlocks.length > 0 && (
                         <SectionCard title="Eligibility (from registry)">
-                            {eligibilityParas.map((p, i) => (
-                                <p className="prose mono" key={i}>
-                                    {p}
-                                </p>
-                            ))}
+                            {eligibilityBlocks.map((block, i) =>
+                                block.type === 'heading' ? (
+                                    <h4 className="elig-h" key={i}>
+                                        {block.text}
+                                    </h4>
+                                ) : block.type === 'list' ? (
+                                    <ul className="elig-list" key={i}>
+                                        {(block.items ?? []).map((it, j) => (
+                                            <li key={j}>{it}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="prose" key={i}>
+                                        {block.text}
+                                    </p>
+                                )
+                            )}
                         </SectionCard>
                     )}
 
@@ -164,6 +182,10 @@ const DetailBody: React.FC<{ trial: TrialDetail }> = ({ trial }) => {
                 </div>
 
                 <div className="col-side">
+                    <SectionCard title="Risk & failure intelligence">
+                        <RiskPanel risk={risk} loading={riskLoading} />
+                    </SectionCard>
+
                     <SectionCard title="Source">
                         <p className="prose">
                             This record is maintained by {trial.source}. Always
@@ -189,7 +211,7 @@ const DetailBody: React.FC<{ trial: TrialDetail }> = ({ trial }) => {
 export const TrialDetailPage: React.FC = () => {
     const { route, back } = useNavigation()
     const registryId = route.params?.trialId ?? ''
-    const { trial, loading, error, notFound, retry } =
+    const { trial, loading, error, notFound, risk, riskLoading, retry } =
         useTrialDetail(registryId)
 
     return (
@@ -221,7 +243,13 @@ export const TrialDetailPage: React.FC = () => {
                 </SectionCard>
             )}
 
-            {!loading && trial && <DetailBody trial={trial} />}
+            {!loading && trial && (
+                <DetailBody
+                    trial={trial}
+                    risk={risk}
+                    riskLoading={riskLoading}
+                />
+            )}
         </div>
     )
 }

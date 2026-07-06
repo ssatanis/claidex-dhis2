@@ -85,10 +85,25 @@ const Card: React.FC<{ trial: TrialSummary; index: number }> = ({
     )
 }
 
-export const RegistryResults: React.FC<{ result: TrialSearchResult }> = ({
+interface Props {
+    result: TrialSearchResult
+    page: number
+    pageSize: number
+    onPage: (page: number) => void
+}
+
+export const RegistryResults: React.FC<Props> = ({
     result,
+    page,
+    pageSize,
+    onPage,
 }) => {
     const failed = result.sourceReports.filter((r) => !r.ok)
+    const totalPages = Math.max(
+        1,
+        Math.ceil(Math.min(result.totalCount, 10000) / pageSize)
+    )
+
     return (
         <div className="cx-tcards cx-cards-scroll">
             <div className="cx-tcards-summary">
@@ -96,13 +111,6 @@ export const RegistryResults: React.FC<{ result: TrialSearchResult }> = ({
                     {formatCount(result.totalCount)} matching{' '}
                     {result.totalCount === 1 ? 'trial' : 'trials'}
                 </p>
-                <div className="cx-tcards-chips">
-                    {result.sourceReports.map((r) => (
-                        <span key={r.source} className="cx-tcards-chip">
-                            {r.source}: {r.ok ? formatCount(r.count) : 'unavailable'}
-                        </span>
-                    ))}
-                </div>
             </div>
             {failed.length > 0 && (
                 <p className="cx-regnote">
@@ -118,11 +126,34 @@ export const RegistryResults: React.FC<{ result: TrialSearchResult }> = ({
                     filter.
                 </p>
             ) : (
-                <div className="cx-tcards-list">
-                    {result.trials.map((t, i) => (
-                        <Card key={t.id} trial={t} index={i} />
-                    ))}
-                </div>
+                <>
+                    <div className="cx-tcards-list">
+                        {result.trials.map((t, i) => (
+                            <Card key={t.id} trial={t} index={i} />
+                        ))}
+                    </div>
+                    <div className="cx-regpager">
+                        <button
+                            type="button"
+                            className="cx-outlinebtn"
+                            disabled={page <= 1}
+                            onClick={() => onPage(page - 1)}
+                        >
+                            Previous
+                        </button>
+                        <span className="cx-regpager-info">
+                            Page {page} of {totalPages}
+                        </span>
+                        <button
+                            type="button"
+                            className="cx-outlinebtn"
+                            disabled={page >= totalPages}
+                            onClick={() => onPage(page + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     )

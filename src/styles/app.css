@@ -1083,6 +1083,114 @@
     border-top-color: var(--cx-ink);
 }
 
+/* Registry search: filters + pager */
+.cx-regsearch-toggle {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--cx-link);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-regsearch-toggle:hover {
+    text-decoration: underline;
+}
+.cx-regsearch-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--cx-border);
+    border-radius: var(--cx-r-sm);
+    background: var(--cx-muted-40);
+}
+.cx-regsearch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cx-regsearch-glabel {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cx-text-3);
+}
+.cx-regsearch-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.cx-togchip {
+    background: var(--cx-surface);
+    border: 1px solid var(--cx-border-2);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--cx-text-2);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-togchip:hover {
+    border-color: #c8c8cd;
+    color: var(--cx-text);
+}
+.cx-togchip.on {
+    background: var(--cx-ink);
+    border-color: var(--cx-ink);
+    color: #fff;
+}
+.cx-regsearch-reset {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12.5px;
+    color: var(--cx-link);
+    cursor: pointer;
+    font-family: var(--cx-font);
+}
+.cx-regsearch-reset:hover {
+    text-decoration: underline;
+}
+.cx-regpager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 0 4px;
+}
+.cx-regpager-info {
+    font-size: 13px;
+    color: var(--cx-text-2);
+}
+
+/* Formatted eligibility criteria */
+.elig-h {
+    margin: 14px 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cx-text);
+}
+.elig-h:first-child {
+    margin-top: 0;
+}
+.elig-list {
+    margin: 0 0 10px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.elig-list li {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--cx-text);
+}
+
 /* ============================ Section card ============================ */
 
 .card {

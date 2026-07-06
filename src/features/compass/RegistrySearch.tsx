@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 import { ArrowUp } from './icons'
-import type { TrialFilters } from '../../types'
+import type {
+    RegistrySource,
+    TrialFilters,
+    TrialPhase,
+    TrialStatus,
+} from '../../types'
 import { DEFAULT_FILTERS } from '../../types'
 
 interface Props {
@@ -16,34 +21,112 @@ const EXAMPLES = [
     'Rheumatoid arthritis',
 ]
 
+const PHASES: TrialPhase[] = [
+    'Early Phase 1',
+    'Phase 1',
+    'Phase 2',
+    'Phase 3',
+    'Phase 4',
+    'N/A',
+]
+
+const STATUSES: TrialStatus[] = [
+    'Recruiting',
+    'Not yet recruiting',
+    'Enrolling by invitation',
+    'Active, not recruiting',
+    'Completed',
+    'Terminated',
+]
+
+const SOURCES: RegistrySource[] = ['ClinicalTrials.gov', 'ISRCTN']
+
 /**
- * Client-side registry search. Runs entirely in the browser against
- * ClinicalTrials.gov and ISRCTN, so the app stays fully functional even when the
- * AI navigator service is unreachable. Only search terms leave the browser, and
- * only to the public registries.
+ * Client-side registry search. Runs entirely against ClinicalTrials.gov and
+ * ISRCTN so the app stays fully functional without any external service. Only
+ * search terms leave the browser, and only to the public registries.
  */
 export const RegistrySearch: React.FC<Props> = ({ onSearch, busy }) => {
     const [query, setQuery] = useState('')
+    const [condition, setCondition] = useState('')
+    const [intervention, setIntervention] = useState('')
+    const [sponsor, setSponsor] = useState('')
+    const [trialId, setTrialId] = useState('')
     const [country, setCountry] = useState('')
-    const [recruitingOnly, setRecruitingOnly] = useState(false)
+    const [phases, setPhases] = useState<TrialPhase[]>([])
+    const [statuses, setStatuses] = useState<TrialStatus[]>([])
+    const [sources, setSources] = useState<RegistrySource[]>([])
+    const [showFilters, setShowFilters] = useState(false)
+
+    const toggle = <T,>(list: T[], value: T, set: (v: T[]) => void) =>
+        set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
+
+    const buildFilters = (q: string): TrialFilters => ({
+        ...DEFAULT_FILTERS,
+        query: q.trim(),
+        condition: condition.trim(),
+        intervention: intervention.trim(),
+        sponsor: sponsor.trim(),
+        trialId: trialId.trim(),
+        country: country.trim(),
+        phases,
+        statuses,
+        sources,
+    })
+
+    const anyInput = (q: string): boolean =>
+        Boolean(
+            q.trim() ||
+                condition.trim() ||
+                intervention.trim() ||
+                sponsor.trim() ||
+                trialId.trim() ||
+                country.trim()
+        )
 
     const run = (q: string) => {
-        const value = q.trim()
-        if (!value && !country.trim()) return
-        onSearch({
-            ...DEFAULT_FILTERS,
-            query: value,
-            country: country.trim(),
-            statuses: recruitingOnly ? ['Recruiting'] : [],
-        })
+        if (!anyInput(q)) return
+        onSearch(buildFilters(q))
     }
+
+    const reset = () => {
+        setQuery('')
+        setCondition('')
+        setIntervention('')
+        setSponsor('')
+        setTrialId('')
+        setCountry('')
+        setPhases([])
+        setStatuses([])
+        setSources([])
+    }
+
+    const field = (
+        label: string,
+        value: string,
+        set: (v: string) => void,
+        placeholder: string
+    ) => (
+        <label className="cx-regsearch-label">
+            {label}
+            <input
+                type="text"
+                className="cx-regsearch-input"
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') run(query)
+                }}
+            />
+        </label>
+    )
 
     return (
         <div className="cx-regsearch">
             <p className="cx-regsearch-intro">
                 Search official registries directly. Enter a condition, drug,
-                sponsor, or trial ID. This runs in your browser against
-                ClinicalTrials.gov and ISRCTN.
+                sponsor, or trial ID.
             </p>
 
             <div className="cx-regsearch-examples">
@@ -55,7 +138,7 @@ export const RegistrySearch: React.FC<Props> = ({ onSearch, busy }) => {
                         disabled={busy}
                         onClick={() => {
                             setQuery(ex)
-                            run(ex)
+                            onSearch({ ...buildFilters(ex) })
                         }}
                     >
                         {ex}
@@ -63,26 +146,117 @@ export const RegistrySearch: React.FC<Props> = ({ onSearch, busy }) => {
                 ))}
             </div>
 
-            <div className="cx-regsearch-fields">
-                <label className="cx-regsearch-label">
-                    Country (optional)
-                    <input
-                        type="text"
-                        className="cx-regsearch-input"
-                        placeholder="e.g. Kenya"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                    />
-                </label>
-                <label className="cx-regsearch-check">
-                    <input
-                        type="checkbox"
-                        checked={recruitingOnly}
-                        onChange={(e) => setRecruitingOnly(e.target.checked)}
-                    />
-                    Recruiting only
-                </label>
-            </div>
+            <button
+                type="button"
+                className="cx-regsearch-toggle"
+                aria-expanded={showFilters}
+                onClick={() => setShowFilters((s) => !s)}
+            >
+                {showFilters ? 'Hide filters' : 'Refine with filters'}
+            </button>
+
+            {showFilters && (
+                <div className="cx-regsearch-panel">
+                    <div className="cx-regsearch-fields">
+                        {field(
+                            'Condition or disease',
+                            condition,
+                            setCondition,
+                            'e.g. hypertension'
+                        )}
+                        {field(
+                            'Intervention',
+                            intervention,
+                            setIntervention,
+                            'drug, device, procedure'
+                        )}
+                        {field('Sponsor', sponsor, setSponsor, 'organization')}
+                        {field(
+                            'Trial ID',
+                            trialId,
+                            setTrialId,
+                            'NCT or ISRCTN id'
+                        )}
+                        {field('Country', country, setCountry, 'e.g. Kenya')}
+                    </div>
+
+                    <div className="cx-regsearch-group">
+                        <span className="cx-regsearch-glabel">Phase</span>
+                        <div className="cx-regsearch-chips">
+                            {PHASES.map((p) => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    className={
+                                        phases.includes(p)
+                                            ? 'cx-togchip on'
+                                            : 'cx-togchip'
+                                    }
+                                    onClick={() =>
+                                        toggle(phases, p, setPhases)
+                                    }
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="cx-regsearch-group">
+                        <span className="cx-regsearch-glabel">
+                            Recruitment status
+                        </span>
+                        <div className="cx-regsearch-chips">
+                            {STATUSES.map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    className={
+                                        statuses.includes(s)
+                                            ? 'cx-togchip on'
+                                            : 'cx-togchip'
+                                    }
+                                    onClick={() =>
+                                        toggle(statuses, s, setStatuses)
+                                    }
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="cx-regsearch-group">
+                        <span className="cx-regsearch-glabel">Registries</span>
+                        <div className="cx-regsearch-chips">
+                            {SOURCES.map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    className={
+                                        sources.includes(s)
+                                            ? 'cx-togchip on'
+                                            : 'cx-togchip'
+                                    }
+                                    onClick={() =>
+                                        toggle(sources, s, setSources)
+                                    }
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="cx-regsearch-reset"
+                        onClick={reset}
+                    >
+                        Reset filters
+                    </button>
+                </div>
+            )}
 
             <div className="cx-regsearch-dock">
                 <div className="cx-chat-inputwrap">
@@ -100,7 +274,7 @@ export const RegistrySearch: React.FC<Props> = ({ onSearch, busy }) => {
                         type="button"
                         className="cx-chat-send"
                         onClick={() => run(query)}
-                        disabled={busy || (!query.trim() && !country.trim())}
+                        disabled={busy || !anyInput(query)}
                         aria-label="Search registries"
                     >
                         {busy ? (

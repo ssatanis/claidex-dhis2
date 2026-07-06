@@ -1,5 +1,5 @@
 export { searchTrials, getTrialById } from './aggregator'
-export { getRiskContext, getBackendStatus } from './claidexRiskAdapter'
+export { getRiskContext } from './claidexRiskAdapter'
 export { probeConnectivity } from './connectivity'
 export { HttpError } from './httpClient'
 export {

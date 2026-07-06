@@ -1,6 +1,6 @@
 {
   "name": "compass-clinical-trial-navigator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Compass - Clinical Trial Navigator: a DHIS2 application for searching clinical trials across official registries, viewing structured trial detail, and producing plain-language trial explainers to support safer trial-navigation workflows.",
   "license": "BSD-3-Clause",
   "author": "Claidex",

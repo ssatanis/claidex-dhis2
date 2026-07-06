@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Button, ButtonStrip, Tag } from '@dhis2/ui'
+import { Button, ButtonStrip } from '@dhis2/ui'
 import type { ExplainerAudience, TrialDetail } from '../../types'
 import { buildExplainer, explainerToText } from '../../utils/explainerBuilder'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
@@ -57,13 +57,6 @@ export const ExplainerPanel: React.FC<Props> = ({ trial }) => {
                         {t.label}
                     </button>
                 ))}
-                <span className="prov">
-                    <Tag neutral>
-                        {explainer.generatedBy === 'deterministic'
-                            ? 'Built from registry fields'
-                            : 'Claidex-generated'}
-                    </Tag>
-                </span>
             </div>
 
             <div className="content">
